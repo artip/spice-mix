@@ -4,15 +4,16 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>SpiceMix</title>
+  <link href="https://fonts.googleapis.com/css2?family=Abril+Fatface&display=swap" rel="stylesheet">
   <style>
     :root {
-      --bg: #1c0f07;
-      --surface: #2e1a0e;
-      --border: #5a3a20;
-      --accent: #e8822a;
-      --gold: #c9a82c;
-      --text: #f0e0c8;
-      --muted: #8a6a4a;
+      --bg: #fef7ec;
+      --surface: #f9edce;
+      --border: #d4a86a;
+      --accent: #e8450a;
+      --gold: #c8960c;
+      --text: #2d1504;
+      --muted: #7d5230;
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -23,7 +24,7 @@
       display: flex;
       flex-direction: column;
       align-items: center;
-      padding: 20px 16px;
+      padding: clamp(24px, 7vh, 64px) 16px 24px;
     }
 
     /* ── Header ── */
@@ -32,13 +33,13 @@
       align-items: flex-start;
       justify-content: center;
       width: 100%;
-      max-width: 320px;
+      max-width: 360px;
       margin-bottom: 4px;
     }
     .header-spacer { width: 36px; flex-shrink: 0; }
     .header-center { flex: 1; text-align: center; }
-    .title { font-size: 2.2rem; font-weight: 800; color: var(--accent); letter-spacing: 0.12em; }
-    .tagline { color: var(--muted); font-size: 0.78rem; letter-spacing: 0.06em; }
+    .title { font-size: 2.2rem; font-weight: 400; font-family: 'Abril Fatface', cursive; color: #e80a0a; letter-spacing: 0.08em; }
+    .tagline { color: var(--muted); font-size: 0.88rem; letter-spacing: 0.03em; margin-top: 8px; line-height: 1.5; text-align: center; }
     .help-btn {
       width: 36px; height: 36px; flex-shrink: 0; margin-top: 4px;
       background: var(--surface); border: 1px solid var(--border);
@@ -58,11 +59,12 @@
 
     @keyframes shake {
       0%   { transform: translateX(0); }
-      15%  { transform: translateX(-8px); }
-      35%  { transform: translateX(8px); }
-      50%  { transform: translateX(-5px); }
-      65%  { transform: translateX(5px); }
-      80%  { transform: translateX(-3px); }
+      10%  { transform: translateX(-12px); }
+      25%  { transform: translateX(12px); }
+      40%  { transform: translateX(-8px); }
+      55%  { transform: translateX(8px); }
+      70%  { transform: translateX(-5px); }
+      85%  { transform: translateX(5px); }
       100% { transform: translateX(0); }
     }
 
@@ -71,14 +73,14 @@
       border-radius: 10px; border: 2px solid transparent;
       transition: border-color 0.25s, background 0.25s;
     }
-    .row.shaking { animation: shake 0.5s ease; }
+    .row.shaking { animation: shake 0.7s ease; }
 
     /* Row states */
-    .row.start   { border-color: #3a7a3a; background: rgba(58,122,58,0.12); }
-    .row.locked  { border-color: #3a7a3a; background: rgba(58,122,58,0.10); }
-    .row.active  { border-color: var(--border); background: rgba(232,130,42,0.04); }
-    .row.ready   { border-color: #3a7a3a; background: rgba(58,122,58,0.06); }
-    .row.invalid { border-color: #9a2020; background: rgba(154,32,32,0.08); }
+    .row.start   { border-color: #2a7a3e; background: rgba(42,122,62,0.14); }
+    .row.locked  { border-color: #2a7a3e; background: rgba(42,122,62,0.10); }
+    .row.active  { border-color: var(--border); background: rgba(232,69,10,0.07); }
+    .row.ready   { border-color: #2a7a3e; background: rgba(42,122,62,0.07); }
+    .row.invalid { border-color: #b01a1a; background: rgba(176,26,26,0.10); }
     .row.future  { border-color: var(--border); }
 
     /* Cells */
@@ -91,35 +93,38 @@
       cursor: pointer; user-select: none;
       transition: border-color 0.15s, background 0.15s;
     }
-    .cell.locked   { background: transparent; border-color: transparent; cursor: default; }
-    .cell.selected { border-color: var(--accent); background: rgba(232,130,42,0.15); }
-    .cell.changed  { color: var(--gold); }
-    .cell.excess   { color: #e05050; }
+    .cell.locked   { cursor: default; }
+    .cell.selected { border-color: var(--accent); background: rgba(232,69,10,0.16); }
+    .cell.changed  { color: #1e8040; }
+    .cell.excess   { color: #c0271a; }
     .cell:not(.locked):not(.selected):hover { border-color: var(--accent); opacity: 0.8; }
 
     .diff-count {
       display: flex; align-items: center; padding-left: 6px;
-      font-size: 0.8rem; font-weight: 700; color: #e05050; user-select: none;
+      font-size: 0.8rem; font-weight: 700; color: #c0271a; user-select: none;
     }
 
     /* ── Messages ── */
+    #message   { order: 10; }
+    #countdown { order: 11; }
     .message {
       text-align: center; font-size: 0.9rem;
       padding: 18px 22px; border-radius: 10px;
       margin: 14px 0; letter-spacing: 0.02em; line-height: 1.5;
     }
     .message.win {
-      color: var(--gold);
-      background: rgba(201,168,44,0.1);
-      border: 1px solid rgba(201,168,44,0.35);
+      color: #e80a0a;
+      background: rgba(232,10,10,0.08);
+      border: 1px solid rgba(232,10,10,0.3);
       font-weight: 700; font-size: 1rem;
     }
     .message.lose {
-      color: #e05050;
-      background: rgba(224,80,80,0.08);
-      border: 1px solid rgba(224,80,80,0.3);
+      color: #e80a0a;
+      background: rgba(232,10,10,0.08);
+      border: 1px solid rgba(232,10,10,0.3);
       font-weight: 600; font-size: 0.92rem;
     }
+    .message.hint { color: #c0271a; font-size: 0.72rem; font-weight: 600; padding: 4px 10px; margin: 4px 0 0; }
 
     .countdown {
       color: var(--muted); font-size: 0.85rem;
@@ -136,15 +141,15 @@
       cursor: pointer; letter-spacing: 0.06em;
       transition: all 0.15s; margin-bottom: 14px;
     }
-    .submit-btn:hover { background: #ff9a44; border-color: #ff9a44; }
+    .submit-btn:hover { background: #f05218; border-color: #f05218; }
     .submit-btn:disabled { opacity: 0.35; cursor: default; }
     .hidden { display: none !important; }
 
     /* ── Keyboard ── */
-    .keyboard { display: flex; flex-direction: column; gap: 6px; }
-    .key-row   { display: flex; gap: 5px; justify-content: center; }
+    .keyboard { display: flex; flex-direction: column; gap: 6px; width: 100%; max-width: 360px; }
+    .key-row   { display: flex; gap: 5px; }
     .key {
-      min-width: 32px; height: 42px; padding: 0 4px;
+      flex: 1; min-width: 0; height: 42px; padding: 0 2px;
       background: var(--surface); border: 1px solid var(--border);
       border-radius: 6px; color: var(--text);
       font-size: 0.85rem; font-weight: 600; cursor: pointer;
@@ -152,7 +157,7 @@
       user-select: none; transition: background 0.1s, color 0.1s;
     }
     .key:hover, .key:active { background: var(--accent); color: var(--bg); border-color: var(--accent); }
-    .key.wide { min-width: 50px; font-size: 0.75rem; }
+    .key.wide { flex: 1.6; font-size: 0.75rem; }
 
     /* ── Modal ── */
     .modal {
@@ -163,7 +168,7 @@
     .modal.hidden { display: none; }
     .modal-bg { position: absolute; inset: 0; background: rgba(0,0,0,0.72); }
     .modal-card {
-      position: relative; background: #2a1508;
+      position: relative; background: #fef7ec;
       border: 1px solid var(--border); border-radius: 16px;
       padding: 24px 22px 20px; max-width: 310px; width: 90%; z-index: 1;
     }
@@ -186,9 +191,9 @@
       display: flex; gap: 5px; padding: 3px 5px;
       border-radius: 7px; border: 1px solid transparent;
     }
-    .ex-row.ex-start { border-color: #3a7a3a; background: rgba(58,122,58,0.15); }
-    .ex-row.ex-mid   { border-color: #3a7a3a; background: rgba(58,122,58,0.08); }
-    .ex-row.ex-end   { border-color: #9a4a1a; background: rgba(154,74,26,0.15); }
+    .ex-row.ex-start { border-color: #2a7a3e; background: rgba(42,122,62,0.15); }
+    .ex-row.ex-mid   { border-color: #2a7a3e; background: rgba(42,122,62,0.08); }
+    .ex-row.ex-end   { border-color: #c04a1a; background: rgba(192,74,26,0.15); }
     .ex-cell {
       width: 34px; height: 34px; border: 1px solid var(--border);
       border-radius: 5px; background: var(--surface);
@@ -196,11 +201,13 @@
       font-size: 1.05rem; font-weight: 700;
     }
     .ex-hi { color: var(--gold); }
+    .ex-label { font-size: 0.72rem; font-weight: 600; color: #2a7a3e; margin-left: 8px; align-self: center; }
+    .ex-label-dim { color: var(--muted); font-weight: 400; }
     .legend { font-size: 0.8rem; color: var(--muted); display: flex; flex-direction: column; gap: 6px; }
     .legend-item { display: flex; align-items: center; gap: 8px; }
     .dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
-    .dot.green { background: #4a9a4a; }
-    .dot.red   { background: #9a2020; }
+    .dot.green { background: #2a7a3e; }
+    .dot.red   { background: #b01a1a; }
     .shake-icon { font-size: 0.75rem; flex-shrink: 0; width: 10px; text-align: center; }
     .modal-footer {
       margin-top: 14px; font-size: 0.78rem; color: var(--muted);
@@ -210,6 +217,13 @@
     #hidden-input {
       position: fixed; top: -200px; left: -200px;
       opacity: 0; width: 1px; height: 1px;
+    }
+
+    @media (max-width: 360px) {
+      body { padding-left: 10px; padding-right: 10px; }
+      .cell { width: 48px; height: 48px; font-size: 1.4rem; }
+      .key-row { gap: 3px; }
+      .key { height: 40px; }
     }
   </style>
 </head>
@@ -222,27 +236,30 @@
       <button class="modal-close" id="modal-close">✕</button>
       <div class="modal-heading">How to Play</div>
       <p class="modal-desc">
-        Get from the <strong>top word</strong> to the <strong>bottom word</strong>
-        by changing <strong>one letter</strong> at a time.
+        Turn <strong>BEEF</strong> into <strong>BEET</strong> — change <strong>one letter</strong> per step.
         Press <strong>Enter</strong> to lock in each word.
       </p>
+
       <div class="ex-grid">
         <div class="ex-row ex-start">
           <span class="ex-cell">B</span><span class="ex-cell">E</span><span class="ex-cell">E</span><span class="ex-cell">F</span>
+          <span class="ex-label">Start</span>
         </div>
         <div class="ex-row ex-mid">
           <span class="ex-cell">B</span><span class="ex-cell">E</span><span class="ex-cell">E</span><span class="ex-cell ex-hi">S</span>
+          <span class="ex-label ex-label-dim">F → S</span>
         </div>
-        <div class="ex-row ex-end">
-          <span class="ex-cell">B</span><span class="ex-cell">E</span><span class="ex-cell">E</span><span class="ex-cell">T</span>
+        <div class="ex-row ex-mid">
+          <span class="ex-cell">B</span><span class="ex-cell">E</span><span class="ex-cell">E</span><span class="ex-cell ex-hi">T</span>
+          <span class="ex-label" style="color:var(--gold)">Target!</span>
         </div>
       </div>
+
       <div class="legend">
-        <div class="legend-item"><span class="dot green"></span> Green — valid word, one letter changed</div>
-        <div class="legend-item"><span class="dot red"></span> Red — too many letters changed</div>
-        <div class="legend-item"><span class="shake-icon">↔</span> Row shakes — not a real word</div>
+        <div class="legend-item"><span class="dot green"></span> Green border — valid move</div>
+        <div class="legend-item"><span class="dot red"></span> Red border + shake — too many letters changed or not a real word</div>
       </div>
-      <p class="modal-footer">One puzzle per day. Locked words cannot be changed.</p>
+      <p class="modal-footer">One food puzzle per day. Locked words cannot be changed.</p>
     </div>
   </div>
 
@@ -251,7 +268,7 @@
     <div class="header-spacer"></div>
     <div class="header-center">
       <div class="title">SpiceMix</div>
-      <div class="tagline">Change one letter at a time</div>
+      <div class="tagline">One ingredient to another,<br>one letter at a time</div>
     </div>
     <button class="help-btn" id="btn-help">?</button>
   </div>
@@ -415,12 +432,11 @@
     const state = {
       puzzleIndex : 0,
       grid        : [],
-      lockedRows  : new Set(),   // row 0 + submitted-correct rows
+      lockedRows  : new Set(),
       activeRow   : 1,
       selected    : { row: 1, col: 0 },
       won         : false,
       lost        : false,
-      shaking     : null,
     };
 
     /* ── Helpers ── */
@@ -438,19 +454,17 @@
     function filled(row) { return row.every(c => c !== '_'); }
 
     function rowClass(r) {
-      const p    = PUZZLES[state.puzzleIndex];
-      const n    = p.path.length;
-      const shk  = state.shaking === r ? ' shaking' : '';
-      if (r === 0)                  return 'start'  + shk;
-      if (state.lockedRows.has(r))  return 'locked' + shk;
-      if (r > state.activeRow)      return 'future';
-      // active row
+      const p = PUZZLES[state.puzzleIndex];
+      const n = p.path.length;
+      if (r === 0)                 return 'start';
+      if (state.lockedRows.has(r)) return 'locked';
+      if (r > state.activeRow)     return 'future';
       const curr = state.grid[r], prev = state.grid[r - 1];
-      if (!filled(curr)) return 'active' + shk;
-      if (!ALL_WORDS.has(curr.join(''))) return 'invalid' + shk;
-      if (diffs(curr, prev) !== 1)       return 'invalid' + shk;
-      if (r === n - 1 && curr.join('') !== p.target) return 'invalid' + shk;
-      return 'ready' + shk;
+      if (!filled(curr)) return 'active';
+      if (!ALL_WORDS.has(curr.join(''))) return 'invalid';
+      if (diffs(curr, prev) !== 1)       return 'invalid';
+      if (r === n - 1 && curr.join('') !== p.target) return 'invalid';
+      return 'ready';
     }
 
     /* ── Persistence ── */
@@ -507,7 +521,7 @@
     function render() {
       const p = PUZZLES[state.puzzleIndex];
       const n = p.path.length;
-      const steps = n - 2;
+      const steps = n - 1;
       const over  = state.won || state.lost;
 
       document.getElementById('steps-info').innerHTML =
@@ -544,12 +558,6 @@
           rowEl.appendChild(cell);
         }
 
-        if (rowDiffs > 1 && !isFuture) {
-          const badge = document.createElement('span');
-          badge.className = 'diff-count';
-          badge.textContent = '×' + rowDiffs;
-          rowEl.appendChild(badge);
-        }
 
         gridEl.appendChild(rowEl);
       }
@@ -598,7 +606,8 @@
         return;
       }
       if (diffs(state.grid[r], prev) !== 1) {
-        render(); // red outline already shown; no shake per spec
+        triggerShake(r);
+        showHint('Change only 1 letter per step');
         return;
       }
 
@@ -616,10 +625,25 @@
       render();
     }
 
+    let _hintTimer = null;
+    function showHint(msg) {
+      if (state.won || state.lost) return;
+      const el = document.getElementById('message');
+      el.className = 'message hint';
+      el.textContent = msg;
+      if (_hintTimer) clearTimeout(_hintTimer);
+      _hintTimer = setTimeout(() => {
+        if (!state.won && !state.lost) { el.className = ''; el.textContent = ''; }
+      }, 2500);
+    }
+
     function triggerShake(r) {
-      state.shaking = r;
-      render();
-      setTimeout(() => { if (state.shaking === r) { state.shaking = null; render(); } }, 550);
+      const rowEl = document.getElementById('grid').children[r];
+      if (!rowEl) return;
+      rowEl.classList.remove('shaking');
+      void rowEl.offsetWidth; // force reflow so animation restarts
+      rowEl.classList.add('shaking');
+      setTimeout(() => rowEl.classList.remove('shaking'), 750);
     }
 
     function type(key) {
@@ -702,19 +726,14 @@
       state.selected    = { row: 1, col: 0 };
       state.won         = false;
       state.lost        = false;
-      state.shaking     = null;
       render();
     }
 
     document.getElementById('daily-label').textContent =
       new Date().toLocaleDateString('en-US', { month:'long', day:'numeric', year:'numeric' });
 
-    if (!loadState()) {
-      init(getDailyIndex());
-    } else {
-      render();
-      if (state.won || state.lost) startCountdown();
-    }
+    // localStorage disabled for testing
+    init(getDailyIndex());
     document.getElementById('hidden-input').focus();
   </script>
 </body>
