@@ -655,7 +655,7 @@
         b.classList.toggle('active', b.dataset.diff === diff);
       });
       if (_cdTimer) { clearInterval(_cdTimer); _cdTimer = null; }
-      if (!loadState()) init(getDailyIndex());
+      if (!loadState()) init(getDailyIndex()); else render();
       updateDailyLabel();
     }
 
@@ -730,7 +730,7 @@
     document.querySelectorAll('.diff-btn').forEach(function(b){
       b.classList.toggle('active', b.dataset.diff === activeDiff);
     });
-    if (!loadState()) init(getDailyIndex());
+    if (!loadState()) init(getDailyIndex()); else render();
   </script>
 </body>
 </html>
