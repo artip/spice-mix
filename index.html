@@ -40,7 +40,7 @@
     .title { font-size: 2.2rem; font-weight: 400; font-family: 'Abril Fatface', cursive; color: #e80a0a; letter-spacing: 0.08em; }
     .tagline { color: var(--muted); font-size: 0.88rem; letter-spacing: 0.03em; margin-top: 8px; line-height: 1.5; text-align: center; }
     .icon-btn {
-      width: 36px; height: 36px; flex-shrink: 0; margin-top: 4px;
+      width: 32px; height: 32px; flex-shrink: 0; margin-top: 4px;
       background: var(--surface); border: 1px solid var(--border);
       border-radius: 50%; color: var(--muted);
       font-size: 1rem; font-weight: 700; cursor: pointer;
@@ -50,19 +50,19 @@
     .icon-btn:hover { border-color: var(--accent); color: var(--accent); }
 
     /* Difficulty toggle (inline in header) */
-    .header-right { display: flex; align-items: flex-start; gap: 6px; margin-top: 4px; }
+    .header-right { display: flex; align-items: center; gap: 6px; margin-top: 4px; flex-shrink: 0; }
     .diff-toggle {
       display: flex;
-      height: 36px;
+      height: 28px;
       border: 1.5px solid var(--border);
-      border-radius: 8px;
+      border-radius: 6px;
       overflow: hidden;
     }
     .diff-btn {
-      padding: 0 10px;
+      padding: 0 9px;
       background: var(--surface); border: none;
-      color: var(--muted); font-size: 0.75rem; font-weight: 600;
-      cursor: pointer; letter-spacing: 0.02em; transition: background 0.15s, color 0.15s;
+      color: var(--muted); font-size: 0.72rem; font-weight: 700;
+      cursor: pointer; letter-spacing: 0.03em; transition: background 0.15s, color 0.15s;
     }
     .diff-btn:first-child { border-right: 1.5px solid var(--border); }
     .diff-btn.active { background: var(--accent); color: var(--bg); }
@@ -323,7 +323,8 @@
     const VALID   = { easy: ALL_WORDS4, hard: ALL_WORDS5 };
     const WLEN    = { easy: 4, hard: 5 };
 
-    let activeDiff = localStorage.getItem('spicemix-pref') || 'easy';
+    let activeDiff = localStorage.getItem('spicemix-pref');
+    if (activeDiff !== 'easy' && activeDiff !== 'hard') activeDiff = 'easy';
 
     const state = {
       puzzleIndex : 0,
