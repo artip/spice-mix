@@ -657,7 +657,6 @@
       if (_cdTimer) { clearInterval(_cdTimer); _cdTimer = null; }
       if (!loadState()) init(getDailyIndex());
       updateDailyLabel();
-      document.getElementById('hidden-input').focus();
     }
 
     function init(idx) {
@@ -732,7 +731,6 @@
       b.classList.toggle('active', b.dataset.diff === activeDiff);
     });
     if (!loadState()) init(getDailyIndex());
-    document.getElementById('hidden-input').focus();
   </script>
 </body>
 </html>
