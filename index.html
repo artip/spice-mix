@@ -555,13 +555,13 @@
 
       const msgEl = document.getElementById('message');
       if (state.won) {
-        msgEl.className = ‘message win’;
+        msgEl.className = 'message win';
         const maxSteps = n - 1;
         const usedSteps = state.wonAt !== undefined ? state.wonAt : maxSteps;
         const saved = maxSteps - usedSteps;
         msgEl.textContent = saved > 0
-          ? ‘🌶️ Masterchef move! You cracked it ‘ + saved + ‘ step’ + (saved > 1 ? ‘s’ : ‘’) + ‘ early!’
-          : ‘🔥 Pure Perfection! You unlocked today\’s flavor profile!’;
+          ? '🌶️ Masterchef move! You cracked it ' + saved + ' step' + (saved > 1 ? 's' : '') + ' early!'
+          : '🔥 Pure Perfection! You unlocked today\'s flavor profile!';
       } else if (state.lost) {
         msgEl.className = 'message lose';
         msgEl.textContent = '💥 Game Over! The recipe ruined. The target was ' + p.target + '.';
