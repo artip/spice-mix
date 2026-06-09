@@ -222,9 +222,10 @@
     .stats-num .l { font-size: 0.68rem; color: var(--muted); }
     .cal { display: flex; flex-wrap: wrap; gap: 3px; margin-top: 4px; }
     .cal-day { width: 13px; height: 13px; border-radius: 2px; }
-    .cal-day.win  { background: #2a7a3e; }
-    .cal-day.lose { background: #b01a1a; }
-    .cal-day.skip { background: var(--border); opacity: 0.35; }
+    .cal-day.win   { background: #2a7a3e; }
+    .cal-day.early { background: #c8960c; }
+    .cal-day.lose  { background: #b01a1a; }
+    .cal-day.skip  { background: var(--border); opacity: 0.35; }
     .stats-divider { height: 1px; background: var(--border); opacity: 0.4; margin: 12px 0; }
 
     #hidden-input {
@@ -427,11 +428,11 @@
       catch(e) { return { easy: [], hard: [] }; }
     }
 
-    function recordResult(won) {
+    function recordResult(won, early) {
       const stats = loadStats(), today = todayStr();
       if (!stats[activeDiff]) stats[activeDiff] = [];
       if (!stats[activeDiff].find(function(e){ return e.date === today; })) {
-        stats[activeDiff].push({ date: today, won: won });
+        stats[activeDiff].push({ date: today, won: won, early: !!early });
         localStorage.setItem('spicemix-stats', JSON.stringify(stats));
       }
     }
@@ -478,7 +479,7 @@
         for (let i = 29; i >= 0; i--) {
           const ds = new Date(new Date(today) - i * 86400000).toISOString().slice(0, 10);
           const e  = entries.find(function(x){ return x.date === ds; });
-          days.push(e ? (e.won ? 'win' : 'lose') : 'skip');
+          days.push(e ? (e.early ? 'early' : e.won ? 'win' : 'lose') : 'skip');
         }
         const cal  = days.map(function(cls){ return '<div class="cal-day ' + cls + '"></div>'; }).join('');
         const label = diff === 'easy' ? 'Easy &middot; 4 letters' : 'Hard &middot; 5 letters';
@@ -526,7 +527,8 @@
 
       const gridEl = document.getElementById('grid');
       gridEl.innerHTML = '';
-      for (let r = 0; r < n; r++) {
+      const visibleRows = (state.won && state.wonAt !== undefined) ? state.wonAt + 1 : n;
+      for (let r = 0; r < visibleRows; r++) {
         const rowEl    = document.createElement('div');
         rowEl.className = 'row ' + rowClass(r);
         const isLocked = r === 0 || state.lockedRows.has(r);
@@ -605,7 +607,7 @@
       if (word === p.target) {
         state.won = true;
         state.wonAt = r;
-        recordResult(true);
+        recordResult(true, r < n - 1);
         saveState();
       } else if (r === n - 1) {
         state.lost = true;
