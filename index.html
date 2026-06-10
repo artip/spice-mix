@@ -270,6 +270,7 @@
       <div class="legend">
         <div class="legend-item"><span class="dot green"></span> Green border &mdash; valid move locked in</div>
         <div class="legend-item"><span class="dot red"></span> Red + shake &mdash; invalid word or too many changes</div>
+        <div class="legend-item">↩ ×1 &mdash; one undo per puzzle to take back your last word</div>
       </div>
       <p class="modal-footer">Two puzzles per day &mdash; Easy (4 letters) &amp; Hard (5 letters). Both reset at midnight.</p>
     </div>
@@ -336,6 +337,7 @@
       selected    : { row: 1, col: 0 },
       won         : false,
       lost        : false,
+      undoUsed    : false,
     };
 
     function wordLen()           { return WLEN[activeDiff]; }
@@ -387,6 +389,7 @@
         won         : state.won,
         lost        : state.lost,
         wonAt       : state.wonAt,
+        undoUsed    : state.undoUsed,
       }));
     }
 
@@ -404,6 +407,7 @@
           won         : d.won,
           lost        : d.lost,
           wonAt       : d.wonAt,
+          undoUsed    : d.undoUsed || false,
           selected    : { row: d.activeRow, col: 0 },
         });
         return true;
@@ -579,6 +583,13 @@
         if (_cdTimer) { clearInterval(_cdTimer); _cdTimer = null; }
       }
       document.getElementById('keyboard').classList.toggle('hidden', over);
+      const undoEl = document.getElementById('key-undo');
+      if (undoEl) {
+        const canUndo = !state.undoUsed && state.activeRow > 1 && !over;
+        undoEl.textContent = state.undoUsed ? '↩ ×0' : '↩ ×1';
+        undoEl.style.opacity = canUndo ? '1' : '0.35';
+        undoEl.style.pointerEvents = canUndo ? '' : 'none';
+      }
     }
 
     function updateDailyLabel() {
@@ -619,6 +630,7 @@
         saveState();
       }
       render();
+      if (!state.won && !state.lost) document.getElementById('hidden-input').focus();
     }
 
     let _hintTimer = null;
@@ -642,11 +654,25 @@
       setTimeout(function(){ rowEl.classList.remove('shaking'); }, 750);
     }
 
+    function undoRow() {
+      if (state.undoUsed || state.activeRow <= 1 || state.won || state.lost) return;
+      const wl = wordLen();
+      state.lockedRows.delete(state.activeRow - 1);
+      state.grid[state.activeRow - 1] = Array(wl).fill('_');
+      state.activeRow--;
+      state.selected = { row: state.activeRow, col: 0 };
+      state.undoUsed = true;
+      saveState();
+      render();
+      document.getElementById('hidden-input').focus();
+    }
+
     function type(key) {
       if (state.won || state.lost || !state.selected) return;
       const r  = state.activeRow;
       const c  = state.selected.col;
       const wl = wordLen();
+      if (key === 'UNDO') { undoRow(); return; }
       if (key === 'ENTER') { submitRow(); return; }
       if (key === 'BACKSPACE') {
         if (state.grid[r][c] !== '_') { state.grid[r][c] = '_'; }
@@ -670,6 +696,7 @@
       if (_cdTimer) { clearInterval(_cdTimer); _cdTimer = null; }
       if (!loadState()) init(getDailyIndex()); else render();
       updateDailyLabel();
+      if (!state.won && !state.lost) document.getElementById('hidden-input').focus();
     }
 
     function init(idx) {
@@ -684,6 +711,7 @@
       state.selected    = { row: 1, col: 0 };
       state.won         = false;
       state.lost        = false;
+      state.undoUsed    = false;
       render();
     }
 
@@ -707,16 +735,17 @@
     const KB_ROWS = [
       'QWERTYUIOP'.split(''),
       'ASDFGHJKL'.split(''),
-      ['ENTER'].concat('ZXCVBNM'.split('')).concat(['←']),
+      ['↩', 'ENTER'].concat('ZXCVBNM'.split('')).concat(['←']),
     ];
     KB_ROWS.forEach(function(row) {
       const rowEl = document.createElement('div');
       rowEl.className = 'key-row';
       row.forEach(function(k) {
         const el = document.createElement('div');
-        el.className = 'key' + (['←','ENTER'].includes(k) ? ' wide' : '');
+        el.className = 'key' + (['←','ENTER','↩'].includes(k) ? ' wide' : '');
         el.textContent = k;
-        el.onclick = function(){ type(k === '←' ? 'BACKSPACE' : k); };
+        if (k === '↩') el.id = 'key-undo';
+        el.onclick = function(){ type(k === '←' ? 'BACKSPACE' : k === '↩' ? 'UNDO' : k); };
         rowEl.appendChild(el);
       });
       document.getElementById('keyboard').appendChild(rowEl);
@@ -744,6 +773,7 @@
       b.classList.toggle('active', b.dataset.diff === activeDiff);
     });
     if (!loadState()) init(getDailyIndex()); else render();
+    if (!state.won && !state.lost) document.getElementById('hidden-input').focus();
   </script>
 </body>
 </html>
