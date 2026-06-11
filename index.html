@@ -73,6 +73,7 @@
     .daily-label { color: var(--muted); font-size: 0.78rem; letter-spacing: 0.04em; margin-bottom: 14px; }
     .steps-info  { color: var(--muted); font-size: 0.88rem; margin-bottom: 14px; }
     .steps-info span { color: var(--text); font-weight: 600; }
+    .solution { color: #e80a0a; font-size: 0.78rem; font-weight: 600; margin-bottom: 10px; letter-spacing: 0.02em; }
 
     /* Grid */
     .grid { display: flex; flex-direction: column; gap: 8px; margin-bottom: 14px; }
@@ -309,6 +310,7 @@
 
   <div class="daily-label" id="daily-label"></div>
   <div class="steps-info"  id="steps-info"></div>
+  <div class="solution"    id="solution"></div>
   <div class="grid"        id="grid"></div>
   <div class="message"     id="message"></div>
   <div class="countdown"   id="countdown"></div>
@@ -528,6 +530,9 @@
       document.getElementById('steps-info').innerHTML =
         '<span>' + p.start + '</span> &rarr; <span>' + (n-1) +
         ' step' + (n-1 !== 1 ? 's' : '') + '</span> &rarr; <span>' + p.target + '</span>';
+      document.getElementById('solution').innerHTML = state.lost
+        ? 'ONE PATH: ' + p.path.join(' → ')
+        : '';
 
       const gridEl = document.getElementById('grid');
       gridEl.innerHTML = '';
@@ -571,7 +576,7 @@
           : '🔥 Pure Perfection! You unlocked today\'s flavor profile!';
       } else if (state.lost) {
         msgEl.className = 'message lose';
-        msgEl.textContent = '💥 Game Over! The recipe ruined. The target was ' + p.target + '.';
+        msgEl.textContent = '💥 Game Over! The recipe ruined.';
       } else {
         msgEl.className = '';
         msgEl.textContent = '';
