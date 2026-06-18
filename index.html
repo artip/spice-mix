@@ -143,6 +143,16 @@
       font-variant-numeric: tabular-nums;
     }
 
+    #btn-share {
+      display: none; margin: 4px 0 12px;
+      padding: 9px 28px; border-radius: 8px;
+      background: var(--accent); color: #fff;
+      border: none; font-size: 0.9rem; font-weight: 700;
+      letter-spacing: 0.04em; cursor: pointer;
+      transition: opacity 0.15s;
+    }
+    #btn-share:hover { opacity: 0.85; }
+
     /* Keyboard */
     .keyboard { display: flex; flex-direction: column; gap: 6px; width: 100%; max-width: 360px; }
     .key-row   { display: flex; gap: 5px; }
@@ -314,6 +324,7 @@
   <div class="solution"    id="solution"></div>
   <div class="grid"        id="grid"></div>
   <div class="message"     id="message"></div>
+  <button id="btn-share">Share 🌶️</button>
   <div class="countdown"   id="countdown"></div>
   <div class="keyboard"    id="keyboard"></div>
 
@@ -583,6 +594,7 @@
         msgEl.textContent = '';
       }
 
+      document.getElementById('btn-share').style.display = over ? 'block' : 'none';
       if (over && !_cdTimer) startCountdown();
       if (!over) {
         document.getElementById('countdown').textContent = '';
@@ -596,6 +608,34 @@
         undoEl.style.opacity = canUndo ? '1' : '0.35';
         undoEl.style.pointerEvents = canUndo ? '' : 'none';
       }
+    }
+
+    function shareResult() {
+      const p = currentPuzzle();
+      const totalSteps = p.path.length - 1;
+      const puzzleNum  = getDailyIndex() + 1;
+      const diffLabel  = activeDiff === 'easy' ? 'Easy · 4 letters' : 'Hard · 5 letters';
+
+      let squares = '';
+      if (state.won) {
+        const used = state.wonAt; // row index = steps used
+        for (let i = 0; i < used; i++)         squares += '🟩';
+        for (let i = used; i < totalSteps; i++) squares += '⬛';
+      } else {
+        for (let i = 0; i < totalSteps; i++) squares += '🟥';
+      }
+
+      const text = 'SpiceMix #' + puzzleNum + ' 🌶️\n' +
+                   diffLabel + '\n' +
+                   'Steps: ' + squares + '\n' +
+                   'spicemix.app';
+
+      const btn = document.getElementById('btn-share');
+      navigator.clipboard.writeText(text).then(function(){
+        const orig = btn.textContent;
+        btn.textContent = 'Copied!';
+        setTimeout(function(){ btn.textContent = orig; }, 2000);
+      });
     }
 
     function updateDailyLabel() {
@@ -766,6 +806,7 @@
     function openStats()  { renderStats(); document.getElementById('stats-modal').classList.remove('hidden'); }
     function closeStats() { document.getElementById('stats-modal').classList.add('hidden'); }
 
+    document.getElementById('btn-share').onclick   = shareResult;
     document.getElementById('btn-help').onclick    = openHelp;
     document.getElementById('btn-stats').onclick   = openStats;
     document.getElementById('modal-close').onclick = closeHelp;
