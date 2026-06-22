@@ -704,6 +704,15 @@
     function undoRow() {
       if (state.undoUsed || state.activeRow <= 1 || state.won || state.lost) return;
       const wl = wordLen();
+      const hasContent = state.grid[state.activeRow].some(function(c){ return c !== '_'; });
+      if (hasContent) {
+        state.grid[state.activeRow] = Array(wl).fill('_');
+        state.selected = { row: state.activeRow, col: 0 };
+        saveState();
+        render();
+        document.getElementById('hidden-input').focus();
+        return;
+      }
       state.lockedRows.delete(state.activeRow - 1);
       state.grid[state.activeRow - 1] = Array(wl).fill('_');
       state.activeRow--;
