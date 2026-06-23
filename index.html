@@ -834,6 +834,10 @@
     });
     if (!loadState()) init(getDailyIndex()); else render();
     if (!state.won && !state.lost) document.getElementById('hidden-input').focus();
+
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js').catch(function() {});
+    }
   </script>
 <script data-goatcounter="https://spicemix.goatcounter.com/count"
         async src="//gc.zgo.at/count.js"></script>
