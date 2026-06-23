@@ -12,23 +12,38 @@
   <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400&display=swap" rel="stylesheet">
   <script>
     const CURRENT_VERSION = '1.0';
+
+    function showUpdateModal() {
+      const modalHTML = '<div id="update-modal" style="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.75);z-index:10000;display:flex;align-items:center;justify-content:center;font-family:system-ui,sans-serif;">' +
+        '<div style="background:#f8f1e3;max-width:340px;width:90%;border-radius:16px;padding:24px;box-shadow:0 10px 30px rgba(0,0,0,0.3);text-align:center;border:3px solid #8B4513;">' +
+          '<h2 style="margin:0 0 16px 0;color:#8B4513;font-size:24px;">🎉 Update Available</h2>' +
+          '<p style="color:#444;margin-bottom:20px;line-height:1.4;">Auto-update didn\'t fully work.<br>Please try one of these:</p>' +
+          '<div style="text-align:left;background:#fff;padding:16px;border-radius:12px;margin-bottom:20px;border:1px solid #d4b89e;">' +
+            '<strong style="color:#8B4513;">Option 1 — Airplane Mode Trick</strong><br><br>' +
+            '1. Turn on Airplane Mode<br>2. Wait for page to fail<br>3. Turn Airplane Mode off<br>4. Pull down to refresh 1–2 times' +
+          '</div>' +
+          '<div style="text-align:left;background:#fff;padding:16px;border-radius:12px;margin-bottom:24px;border:1px solid #d4b89e;">' +
+            '<strong style="color:#8B4513;">Option 2 — Clear Site Data</strong><br><br>' +
+            'Settings → Safari → Advanced → Website Data<br>→ Search "spicemix.app" → Delete → Reload' +
+          '</div>' +
+          '<button onclick="document.getElementById(\'update-modal\').remove()" style="background:#8B4513;color:white;border:none;padding:14px 32px;font-size:17px;border-radius:12px;width:100%;font-weight:600;">Got it, Thanks!</button>' +
+        '</div></div>';
+      if (document.body) {
+        document.body.insertAdjacentHTML('beforeend', modalHTML);
+      } else {
+        document.addEventListener('DOMContentLoaded', function() {
+          document.body.insertAdjacentHTML('beforeend', modalHTML);
+        });
+      }
+    }
+
     async function checkUpdate() {
       try {
         const res = await fetch('version.json?t=' + Date.now());
         const data = await res.json();
         if (data.version !== CURRENT_VERSION) {
           if (sessionStorage.getItem('reloadAttempted') === data.version) {
-            alert(
-              'Auto-update did not work. Please try one of these:\n\n' +
-              'Option 1 — Airplane Mode trick:\n' +
-              '1. Turn on Airplane Mode\n' +
-              '2. Wait for page to fail to load\n' +
-              '3. Turn Airplane Mode off\n' +
-              '4. Pull down to refresh 1-2 times\n\n' +
-              'Option 2 — Clear site data:\n' +
-              'Settings → Safari → Advanced → Website Data\n' +
-              '→ Search spicemix.app → Delete → Reload'
-            );
+            showUpdateModal();
             return;
           }
           if (confirm('New version available!\nReload the game now?')) {
