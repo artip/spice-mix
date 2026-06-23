@@ -10,6 +10,24 @@
   <title>SpiceMix</title>
   <link rel="icon" type="image/svg+xml" href="favicon.svg?v=3">
   <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400&display=swap" rel="stylesheet">
+  <script>
+    const CURRENT_VERSION = '1.0';
+    async function checkUpdate() {
+      try {
+        const res = await fetch('version.json?t=' + Date.now());
+        const data = await res.json();
+        if (data.version !== CURRENT_VERSION) {
+          if (confirm('New version available!\nReload the game now?')) {
+            location.replace('/?t=' + Date.now());
+          }
+        }
+      } catch(e) {}
+    }
+    checkUpdate();
+    document.addEventListener('visibilitychange', function() {
+      if (!document.hidden) checkUpdate();
+    });
+  </script>
   <style>
     :root {
       --bg: #fef7ec;
@@ -834,23 +852,6 @@
     });
     if (!loadState()) init(getDailyIndex()); else render();
     if (!state.won && !state.lost) document.getElementById('hidden-input').focus();
-
-    const CURRENT_VERSION = '1.0';
-    async function checkUpdate() {
-      try {
-        const res = await fetch('version.json?t=' + Date.now());
-        const data = await res.json();
-        if (data.version !== CURRENT_VERSION) {
-          if (confirm('New version available!\nReload the game now?')) {
-            location.replace('/?t=' + Date.now());
-          }
-        }
-      } catch(e) {}
-    }
-    checkUpdate();
-    document.addEventListener('visibilitychange', function() {
-      if (!document.hidden) checkUpdate();
-    });
   </script>
 <script data-goatcounter="https://spicemix.goatcounter.com/count"
         async src="//gc.zgo.at/count.js"></script>
