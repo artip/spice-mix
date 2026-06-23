@@ -832,10 +832,17 @@
     if (!loadState()) init(getDailyIndex()); else render();
     if (!state.won && !state.lost) document.getElementById('hidden-input').focus();
 
-    const APP_VERSION = 'v9';
-    if (navigator.onLine && !location.search.includes(APP_VERSION)) {
-      location.replace('/?r=' + APP_VERSION);
+    const CURRENT_VERSION = '1.0';
+    async function checkForUpdate() {
+      try {
+        const resp = await fetch('version.json?t=' + Date.now());
+        const data = await resp.json();
+        if (data.version !== CURRENT_VERSION) {
+          location.replace('/?t=' + Date.now());
+        }
+      } catch(e) {}
     }
+    window.addEventListener('load', checkForUpdate);
   </script>
 <script data-goatcounter="https://spicemix.goatcounter.com/count"
         async src="//gc.zgo.at/count.js"></script>
