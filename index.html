@@ -41,21 +41,27 @@
       }
     }
 
+    let _checkInProgress = false;
     async function checkUpdate() {
+      if (_checkInProgress) return;
+      _checkInProgress = true;
       try {
         const res = await fetch('version.json?t=' + Date.now());
         const data = await res.json();
         if (data.version !== CURRENT_VERSION) {
           if (sessionStorage.getItem('reloadAttempted') === data.version) {
             showUpdateModal();
+            _checkInProgress = false;
             return;
           }
+          // Set guard before confirm so cancel doesn't cause re-prompting on tab switch
+          sessionStorage.setItem('reloadAttempted', data.version);
           if (confirm('New version available!\nReload the game now?')) {
-            sessionStorage.setItem('reloadAttempted', data.version);
             location.replace('/?t=' + Date.now());
           }
         }
       } catch(e) {}
+      _checkInProgress = false;
     }
     checkUpdate();
     document.addEventListener('visibilitychange', function() {
@@ -491,7 +497,7 @@
       const toRemove = [];
       for (let i = 0; i < localStorage.length; i++) {
         const key = localStorage.key(i);
-        const m = key && key.match(/^spicemix-(?:easy-|hard-|medium-)?(d{4}-d{2}-d{2})$/);
+        const m = key && key.match(/^spicemix-(?:easy-|hard-|medium-)?(\d{4}-\d{2}-\d{2})$/);
         if (m && m[1] < cutoffStr) toRemove.push(key);
       }
       toRemove.forEach(function(k){ localStorage.removeItem(k); });
@@ -674,7 +680,7 @@
 
       let squares = '';
       if (state.won) {
-        const used = state.wonAt; // row index = steps used
+        const used = state.wonAt !== undefined ? state.wonAt : totalSteps;
         for (let i = 0; i < used; i++)         squares += '🟩';
         for (let i = used; i < totalSteps; i++) squares += '⬛';
       } else {
@@ -691,6 +697,9 @@
         const orig = btn.textContent;
         btn.textContent = 'Copied!';
         setTimeout(function(){ btn.textContent = orig; }, 2000);
+      }).catch(function(){
+        btn.textContent = 'Copy failed';
+        setTimeout(function(){ btn.textContent = 'Share 🌶️'; }, 2000);
       });
     }
 
