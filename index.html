@@ -4,9 +4,6 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-  <meta http-equiv="Pragma" content="no-cache">
-  <meta http-equiv="Expires" content="0">
   <title>SpiceMix</title>
   <link rel="icon" type="image/svg+xml" href="favicon.svg?v=3">
   <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400&display=swap" rel="stylesheet">
@@ -835,8 +832,9 @@
     if (!loadState()) init(getDailyIndex()); else render();
     if (!state.won && !state.lost) document.getElementById('hidden-input').focus();
 
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/sw.js').catch(function() {});
+    const APP_VERSION = 'v9';
+    if (navigator.onLine && !location.search.includes(APP_VERSION)) {
+      location.replace('/?r=' + APP_VERSION);
     }
   </script>
 <script data-goatcounter="https://spicemix.goatcounter.com/count"
