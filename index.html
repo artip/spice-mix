@@ -26,14 +26,18 @@
             '<strong style="color:#8B4513;">Option 2 — Clear Site Data</strong><br><br>' +
             'Settings → Safari → Advanced → Website Data<br>→ Search "spicemix.app" → Delete → Reload' +
           '</div>' +
-          '<button onclick="document.getElementById(\'update-modal\').remove()" style="background:#8B4513;color:white;border:none;padding:14px 32px;font-size:17px;border-radius:12px;width:100%;font-weight:600;">Got it, Thanks!</button>' +
+          '<button id="update-modal-close" style="background:#8B4513;color:white;border:none;padding:14px 32px;font-size:17px;border-radius:12px;width:100%;font-weight:600;">Got it, Thanks!</button>' +
         '</div></div>';
-      if (document.body) {
+      function insertModal() {
         document.body.insertAdjacentHTML('beforeend', modalHTML);
+        document.getElementById('update-modal-close').onclick = function() {
+          document.getElementById('update-modal').remove();
+        };
+      }
+      if (document.body) {
+        insertModal();
       } else {
-        document.addEventListener('DOMContentLoaded', function() {
-          document.body.insertAdjacentHTML('beforeend', modalHTML);
-        });
+        document.addEventListener('DOMContentLoaded', insertModal);
       }
     }
 
