@@ -4,6 +4,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
   <title>SpiceMix</title>
   <link rel="icon" type="image/svg+xml" href="favicon.svg?v=3">
   <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400&display=swap" rel="stylesheet">
@@ -833,16 +836,21 @@
     if (!state.won && !state.lost) document.getElementById('hidden-input').focus();
 
     const CURRENT_VERSION = '1.0';
-    async function checkForUpdate() {
+    async function checkUpdate() {
       try {
-        const resp = await fetch('version.json?t=' + Date.now());
-        const data = await resp.json();
+        const res = await fetch('version.json?t=' + Date.now());
+        const data = await res.json();
         if (data.version !== CURRENT_VERSION) {
-          location.replace('/?t=' + Date.now());
+          if (confirm('New version available!\nReload the game now?')) {
+            location.replace('/?t=' + Date.now());
+          }
         }
       } catch(e) {}
     }
-    window.addEventListener('load', checkForUpdate);
+    checkUpdate();
+    document.addEventListener('visibilitychange', function() {
+      if (!document.hidden) checkUpdate();
+    });
   </script>
 <script data-goatcounter="https://spicemix.goatcounter.com/count"
         async src="//gc.zgo.at/count.js"></script>
