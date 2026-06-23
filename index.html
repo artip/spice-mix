@@ -17,7 +17,22 @@
         const res = await fetch('version.json?t=' + Date.now());
         const data = await res.json();
         if (data.version !== CURRENT_VERSION) {
-          if (sessionStorage.getItem('reloadAttempted') === data.version) return;
+          if (sessionStorage.getItem('reloadAttempted') === data.version) {
+            window.addEventListener('load', function() {
+              alert(
+                'Auto-update did not work. Please try one of these:\n\n' +
+                'Option 1 — Airplane Mode trick:\n' +
+                '1. Turn on Airplane Mode\n' +
+                '2. Wait for page to fail to load\n' +
+                '3. Turn Airplane Mode off\n' +
+                '4. Pull down to refresh 1-2 times\n\n' +
+                'Option 2 — Clear site data:\n' +
+                'Settings → Safari → Advanced → Website Data\n' +
+                '→ Search spicemix.app → Delete → Reload'
+              );
+            });
+            return;
+          }
           if (confirm('New version available!\nReload the game now?')) {
             sessionStorage.setItem('reloadAttempted', data.version);
             location.replace('/?t=' + Date.now());
