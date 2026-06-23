@@ -17,7 +17,9 @@
         const res = await fetch('version.json?t=' + Date.now());
         const data = await res.json();
         if (data.version !== CURRENT_VERSION) {
+          if (sessionStorage.getItem('reloadAttempted') === data.version) return;
           if (confirm('New version available!\nReload the game now?')) {
+            sessionStorage.setItem('reloadAttempted', data.version);
             location.replace('/?t=' + Date.now());
           }
         }
