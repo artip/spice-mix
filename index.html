@@ -687,8 +687,13 @@
         for (let i = 0; i < totalSteps; i++) squares += '🟥';
       }
 
+      const startWord  = p.start.toUpperCase();
+      const targetWord = p.path[p.path.length - 1].toUpperCase();
+      const puzzleLine = startWord + ' → ' + totalSteps + ' steps → ' + targetWord;
+
       const text = 'SpiceMix #' + puzzleNum + ' 🌶️\n' +
                    diffLabel + '\n' +
+                   puzzleLine + '\n' +
                    'Steps: ' + squares + '\n' +
                    'spicemix.app';
 
