@@ -111,6 +111,8 @@
       transition: all 0.15s;
     }
     .icon-btn:hover { border-color: var(--accent); color: var(--accent); }
+    #btn-hint { width: auto; min-width: 36px; padding: 0 8px; font-size: 0.78rem; font-weight: 700; letter-spacing: 0; }
+    #btn-hint.exhausted { opacity: 0.35; cursor: default; pointer-events: none; }
 
     /* Difficulty toggle */
     .diff-toggle {
@@ -149,6 +151,16 @@
       70%  { transform: translateX(-5px); }
       85%  { transform: translateX(5px); }
     }
+    @keyframes hint-pulse {
+      0%,100% { box-shadow: 0 0 0 0 rgba(200,150,12,0.7); }
+      50%      { box-shadow: 0 0 0 7px rgba(200,150,12,0); }
+    }
+    @keyframes pulse-warn {
+      0%,100% { transform: translateX(0) scale(1); }
+      30%      { transform: translateX(-4px) scale(1.01); }
+      60%      { transform: translateX(4px) scale(1.01); }
+    }
+    .row.pulsing { animation: pulse-warn 0.35s ease; }
 
     .row {
       display: flex; gap: 8px; padding: 4px 6px;
@@ -174,9 +186,10 @@
     }
     .cell.locked   { cursor: default; }
     .cell.selected { border-color: var(--gold); background: rgba(200,150,12,0.18); }
-    .cell.changed  { color: #1e8040; }
-    .cell.excess   { color: #c0271a; }
-    .cell:not(.locked):not(.selected):hover { border-color: var(--accent); opacity: 0.8; }
+    .cell.changed  { background: rgba(42,122,62,0.2); border-color: #2a7a3e; color: #1e8040; }
+    .cell.excess   { background: rgba(176,26,26,0.15); border-color: #b01a1a; color: #c0271a; }
+    .cell.hinted   { border-color: var(--gold); background: rgba(200,150,12,0.22); color: #7d3b10; cursor: default; animation: hint-pulse 1.2s ease 4; }
+    .cell:not(.locked):not(.hinted):not(.selected):hover { border-color: var(--accent); opacity: 0.8; }
 
     /* Messages */
     #message   { order: 10; }
@@ -196,7 +209,8 @@
       border: 1px solid rgba(232,10,10,0.3);
       font-weight: 600; font-size: 0.92rem;
     }
-    .message.hint { color: #c0271a; font-size: 0.72rem; font-weight: 600; padding: 4px 10px; margin: 4px 0 0; }
+    .message.toast-error { color: #b01a1a; background: rgba(176,26,26,0.08); border: 1px solid rgba(176,26,26,0.25); font-weight: 600; font-size: 0.84rem; padding: 10px 16px; }
+    .message.toast-warn  { color: #c86010; background: rgba(220,110,10,0.09); border: 1px solid rgba(220,110,10,0.28); font-weight: 600; font-size: 0.84rem; padding: 10px 16px; }
 
     .countdown {
       color: var(--muted); font-size: 0.85rem;
@@ -343,7 +357,7 @@
       <div class="legend">
         <div class="legend-item"><span class="dot green"></span> Green border &mdash; valid move locked in</div>
         <div class="legend-item"><span class="dot red"></span> Red + shake &mdash; invalid word or too many changes</div>
-        <div class="legend-item">↩ ×1 &mdash; one undo per puzzle to take back your last word</div>
+        <div class="legend-item">↩ &mdash; revert your last word (unlimited)</div>
       </div>
       <p class="modal-footer">Two puzzles per day &mdash; Easy (4 letters) &amp; Hard (5 letters). Both reset at midnight.</p>
       <p class="modal-footer"><a href="https://docs.google.com/forms/d/1TeThxK6q98QjxBUMVlQn6vE4V3yB2DgnxlruyhcP5Tk/viewform" target="_blank" rel="noopener" style="color:var(--accent);">Share feedback</a></p>
@@ -373,6 +387,7 @@
       <div class="title">SpiceMix</div>
       <div class="tagline">One ingredient to another,<br>one letter at a time</div>
     </div>
+    <button class="icon-btn" id="btn-hint" title="Hint">💡1</button>
     <button class="icon-btn" id="btn-help">?</button>
   </div>
 
@@ -413,7 +428,8 @@
       selected    : { row: 1, col: 0 },
       won         : false,
       lost        : false,
-      undoUsed    : false,
+      hintsLeft   : 2,
+      hintedCells : [],
     };
 
     function wordLen()           { return WLEN[activeDiff]; }
@@ -465,7 +481,8 @@
         won         : state.won,
         lost        : state.lost,
         wonAt       : state.wonAt,
-        undoUsed    : state.undoUsed,
+        hintsLeft   : state.hintsLeft,
+        hintedCells : state.hintedCells,
       }));
     }
 
@@ -483,7 +500,8 @@
           won         : d.won,
           lost        : d.lost,
           wonAt       : d.wonAt,
-          undoUsed    : d.undoUsed || false,
+          hintsLeft   : d.hintsLeft !== undefined ? d.hintsLeft : 2,
+          hintedCells : d.hintedCells || [],
           selected    : { row: d.activeRow, col: 0 },
         });
         return true;
@@ -515,6 +533,30 @@
         stats[activeDiff].push({ date: today, won: won, early: !!early });
         localStorage.setItem('spicemix-stats', JSON.stringify(stats));
       }
+    }
+
+    function loadStreakRaw() {
+      try { return JSON.parse(localStorage.getItem('spicemix-streak') || 'null') || { streak: 0, lastDate: null }; }
+      catch(e) { return { streak: 0, lastDate: null }; }
+    }
+
+    function loadStreak() {
+      const data = loadStreakRaw();
+      if (!data.lastDate) return data;
+      const today = todayStr();
+      const prev  = new Date(today); prev.setDate(prev.getDate() - 1);
+      const yesterday = prev.toISOString().slice(0, 10);
+      return (data.lastDate === today || data.lastDate === yesterday) ? data : { streak: 0, lastDate: data.lastDate };
+    }
+
+    function recordStreak() {
+      const today = todayStr();
+      const data  = loadStreakRaw();
+      if (data.lastDate === today) return;
+      const prev  = new Date(today); prev.setDate(prev.getDate() - 1);
+      const yesterday = prev.toISOString().slice(0, 10);
+      const newStreak = data.lastDate === yesterday ? data.streak + 1 : 1;
+      localStorage.setItem('spicemix-streak', JSON.stringify({ streak: newStreak, lastDate: today }));
     }
 
     function computeStreaks(entries) {
@@ -602,8 +644,8 @@
       const over = state.won || state.lost;
 
       document.getElementById('steps-info').innerHTML =
-        '<span>' + p.start + '</span> &rarr; <span>' + (n-1) +
-        ' step' + (n-1 !== 1 ? 's' : '') + '</span> &rarr; <span>' + p.target + '</span>';
+        'Turn <span>' + p.start + '</span> into <span>' + p.target + '</span> in <span>' + (n-1) +
+        ' step' + (n-1 !== 1 ? 's' : '') + '</span>';
       document.getElementById('solution').innerHTML = state.lost
         ? 'ONE PATH: ' + p.path.join(' → ')
         : '';
@@ -621,13 +663,15 @@
           ? diffs(state.grid[r], refRow) : 0;
         for (let c = 0; c < wl; c++) {
           const ch        = state.grid[r][c];
-          const canClick  = !isLocked && !isFuture && !over;
+          const isHinted  = state.hintedCells.some(function(h){ return h.row === r && h.col === c; });
+          const canClick  = !isLocked && !isFuture && !over && !isHinted;
           const sel       = canClick && state.selected && state.selected.row === r && state.selected.col === c;
           const isChanged = r > 0 && ch !== '_' && refRow && filled(refRow) && ch !== refRow[c];
           const isExcess  = isChanged && rowDiffs > 1;
           const cell      = document.createElement('div');
           cell.className  = ['cell',
             isLocked               ? 'locked'   : '',
+            isHinted               ? 'hinted'   : '',
             sel                    ? 'selected' : '',
             isChanged && !isExcess ? 'changed'  : '',
             isExcess               ? 'excess'   : '',
@@ -641,17 +685,16 @@
 
       const msgEl = document.getElementById('message');
       if (state.won) {
+        _activeToast = null;
+        const s = loadStreak().streak;
+        const streakLine = s === 1 ? '🔥 1 day streak — come back tomorrow!' : '🔥 ' + s + ' day streak!';
         msgEl.className = 'message win';
-        const maxSteps = n - 1;
-        const usedSteps = state.wonAt !== undefined ? state.wonAt : maxSteps;
-        const saved = maxSteps - usedSteps;
-        msgEl.textContent = saved > 0
-          ? '🌶️ Masterchef move! You cracked it ' + saved + ' step' + (saved > 1 ? 's' : '') + ' early!'
-          : '🔥 Pure Perfection! You unlocked today\'s flavor profile!';
+        msgEl.innerHTML = '🌶️ Pure Perfection! You unlocked today\'s flavor profile.<br><br>' + streakLine;
       } else if (state.lost) {
+        _activeToast = null;
         msgEl.className = 'message lose';
         msgEl.textContent = '💥 Game Over! The recipe ruined.';
-      } else {
+      } else if (_activeToast === null) {
         msgEl.className = '';
         msgEl.textContent = '';
       }
@@ -665,10 +708,29 @@
       document.getElementById('keyboard').classList.toggle('hidden', over);
       const undoEl = document.getElementById('key-undo');
       if (undoEl) {
-        const canUndo = !state.undoUsed && state.activeRow > 1 && !over;
-        undoEl.textContent = state.undoUsed ? '↩ ×0' : '↩ ×1';
+        const canUndo = !over && (state.activeRow > 1 || state.grid[1] && state.grid[1].some(function(c){ return c !== '_'; }));
+        undoEl.textContent = '↩';
         undoEl.style.opacity = canUndo ? '1' : '0.35';
         undoEl.style.pointerEvents = canUndo ? '' : 'none';
+      }
+      const hintBtn = document.getElementById('btn-hint');
+      if (hintBtn) {
+        hintBtn.style.display = over ? 'none' : '';
+        hintBtn.textContent   = '💡' + state.hintsLeft;
+        hintBtn.classList.toggle('exhausted', state.hintsLeft === 0);
+      }
+
+      if (!over) {
+        const ar   = state.activeRow;
+        const prev = state.grid[ar - 1];
+        let pd = 0;
+        if (prev && filled(prev)) {
+          for (let c = 0; c < wl; c++) {
+            if (state.grid[ar][c] !== '_' && state.grid[ar][c] !== prev[c]) pd++;
+          }
+        }
+        if (pd > 1 && _activeToast === null)       maybeShowExcessToast();
+        else if (pd <= 1 && _activeToast === 'excess') dismissToast();
       }
     }
 
@@ -709,12 +771,13 @@
     }
 
     function updateDailyLabel() {
-      document.getElementById('daily-label').textContent =
-        new Date().toLocaleDateString('en-US', { month:'long', day:'numeric', year:'numeric' });
+      const dateStr = new Date().toLocaleDateString('en-US', { month:'long', day:'numeric', year:'numeric' });
+      const streak  = loadStreak().streak;
+      document.getElementById('daily-label').textContent = streak > 0 ? dateStr + '  🔥 ' + streak : dateStr;
     }
 
     function pick(r, c) {
-      if (state.won || state.lost || r !== state.activeRow) return;
+      if (state.won || state.lost || r !== state.activeRow || isHintedCell(r, c)) return;
       state.selected = { row: r, col: c };
       render();
       document.getElementById('hidden-input').focus();
@@ -729,11 +792,13 @@
       const word = state.grid[r].join('');
       const prev = state.grid[r - 1];
       if (!currentValidWords().has(word)) { triggerShake(r); return; }
-      if (diffs(state.grid[r], prev) !== 1) { triggerShake(r); showHint('Change only 1 letter per step'); return; }
+      if (diffs(state.grid[r], prev) !== 1) { triggerShake(r); return; }
       state.lockedRows.add(r);
       if (word === p.target) {
         state.won = true;
         state.wonAt = r;
+        recordStreak();
+        updateDailyLabel();
         recordResult(true, r < n - 1);
         saveState();
       } else if (r === n - 1) {
@@ -749,16 +814,46 @@
       if (!state.won && !state.lost) document.getElementById('hidden-input').focus();
     }
 
-    let _hintTimer = null;
-    function showHint(msg) {
-      if (state.won || state.lost) return;
+    let _hintTimer  = null;
+    let _activeToast = null;
+
+    function showToast(msg, cssClass, duration, toastType) {
+      _activeToast = toastType || 'generic';
       const el = document.getElementById('message');
-      el.className = 'message hint';
+      el.className  = 'message ' + cssClass;
       el.textContent = msg;
       if (_hintTimer) clearTimeout(_hintTimer);
       _hintTimer = setTimeout(function(){
+        _activeToast = null;
         if (!state.won && !state.lost) { el.className = ''; el.textContent = ''; }
-      }, 2500);
+      }, duration);
+    }
+
+    function dismissToast() {
+      _activeToast = null;
+      if (_hintTimer) { clearTimeout(_hintTimer); _hintTimer = null; }
+      const el = document.getElementById('message');
+      el.className = ''; el.textContent = '';
+    }
+
+    function showHint(msg) {
+      showToast(msg, 'toast-error', 2500, 'error');
+    }
+
+    function showOffPathToast() {
+      showToast('You\'re off the spice trail! 🌶️ Revert and try again', 'toast-warn', 3000, 'warn');
+    }
+
+    function maybeShowExcessToast() {
+      if (_activeToast !== null) return;
+      showToast('Change only 1 letter per step', 'toast-error', 2000, 'excess');
+      const rowEl = document.getElementById('grid') && document.getElementById('grid').children[state.activeRow];
+      if (rowEl) {
+        rowEl.classList.remove('pulsing');
+        void rowEl.offsetWidth;
+        rowEl.classList.add('pulsing');
+        setTimeout(function(){ rowEl.classList.remove('pulsing'); }, 400);
+      }
     }
 
     function triggerShake(r) {
@@ -771,22 +866,62 @@
     }
 
     function undoRow() {
-      if (state.undoUsed || state.activeRow <= 1 || state.won || state.lost) return;
+      if (state.won || state.lost) return;
       const wl = wordLen();
-      const hasContent = state.grid[state.activeRow].some(function(c){ return c !== '_'; });
+      const r  = state.activeRow;
+      const hasContent = state.grid[r].some(function(c){ return c !== '_'; });
       if (hasContent) {
-        state.grid[state.activeRow] = Array(wl).fill('_');
-        state.selected = { row: state.activeRow, col: 0 };
+        state.grid[r] = Array(wl).fill('_');
+        state.hintedCells = state.hintedCells.filter(function(h){ return h.row !== r; });
+        state.selected = { row: r, col: 0 };
         saveState();
         render();
         document.getElementById('hidden-input').focus();
         return;
       }
-      state.lockedRows.delete(state.activeRow - 1);
-      state.grid[state.activeRow - 1] = Array(wl).fill('_');
+      if (r <= 1) return;
+      state.lockedRows.delete(r - 1);
+      state.grid[r - 1] = Array(wl).fill('_');
+      state.hintedCells = state.hintedCells.filter(function(h){ return h.row !== r - 1; });
       state.activeRow--;
       state.selected = { row: state.activeRow, col: 0 };
-      state.undoUsed = true;
+      saveState();
+      render();
+      document.getElementById('hidden-input').focus();
+    }
+
+    function isHintedCell(r, c) {
+      return state.hintedCells.some(function(h){ return h.row === r && h.col === c; });
+    }
+
+    function useHint() {
+      if (state.won || state.lost || state.hintsLeft <= 0) return;
+      const p        = currentPuzzle();
+      const r        = state.activeRow;
+      const currWord = state.grid[r - 1].join('');
+
+      if (currWord !== p.path[r - 1]) {
+        showOffPathToast();
+        return;
+      }
+
+      const prev = p.path[r - 1];
+      const next = p.path[r];
+      let hintCol = -1;
+      for (let c = 0; c < wordLen(); c++) {
+        if (next[c] !== prev[c]) { hintCol = c; break; }
+      }
+      if (hintCol === -1 || isHintedCell(r, hintCol)) return;
+
+      state.grid[r][hintCol] = next[hintCol];
+      state.hintedCells.push({ row: r, col: hintCol });
+      state.hintsLeft--;
+      if (state.selected && state.selected.row === r && state.selected.col === hintCol) {
+        const wl = wordLen();
+        let nextCol = hintCol + 1;
+        while (nextCol < wl && isHintedCell(r, nextCol)) nextCol++;
+        state.selected = { row: r, col: nextCol < wl ? nextCol : hintCol };
+      }
       saveState();
       render();
       document.getElementById('hidden-input').focus();
@@ -800,13 +935,21 @@
       if (key === 'UNDO') { undoRow(); return; }
       if (key === 'ENTER') { submitRow(); return; }
       if (key === 'BACKSPACE') {
-        if (state.grid[r][c] !== '_') { state.grid[r][c] = '_'; }
-        else if (c > 0) { state.selected = { row: r, col: c - 1 }; state.grid[r][c - 1] = '_'; }
+        if (!isHintedCell(r, c) && state.grid[r][c] !== '_') { state.grid[r][c] = '_'; }
+        else if (c > 0) {
+          let prev = c - 1;
+          while (prev > 0 && isHintedCell(r, prev)) prev--;
+          if (!isHintedCell(r, prev)) { state.selected = { row: r, col: prev }; state.grid[r][prev] = '_'; }
+        }
       } else if (key === 'ARROWLEFT')  { state.selected = { row: r, col: Math.max(0, c - 1) }; }
       else if (key === 'ARROWRIGHT') { state.selected = { row: r, col: Math.min(wl - 1, c + 1) }; }
       else if (/^[A-Z]$/.test(key)) {
-        state.grid[r][c] = key;
-        if (c < wl - 1) state.selected = { row: r, col: c + 1 };
+        if (!isHintedCell(r, c)) {
+          state.grid[r][c] = key;
+          let nextCol = c + 1;
+          while (nextCol < wl && isHintedCell(r, nextCol)) nextCol++;
+          if (nextCol < wl) state.selected = { row: r, col: nextCol };
+        }
       }
       render();
     }
@@ -836,7 +979,8 @@
       state.selected    = { row: 1, col: 0 };
       state.won         = false;
       state.lost        = false;
-      state.undoUsed    = false;
+      state.hintsLeft   = 2;
+      state.hintedCells = [];
       render();
     }
 
@@ -886,6 +1030,7 @@
     function closeStats() { document.getElementById('stats-modal').classList.add('hidden'); }
 
     document.getElementById('btn-share').onclick   = shareResult;
+    document.getElementById('btn-hint').onclick    = useHint;
     document.getElementById('btn-help').onclick    = openHelp;
     document.getElementById('btn-stats').onclick   = openStats;
     document.getElementById('modal-close').onclick = closeHelp;
