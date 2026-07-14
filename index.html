@@ -759,6 +759,7 @@
                    'Steps: ' + squares + '\n' +
                    'spicemix.app';
 
+      if (window.goatcounter) window.goatcounter.count({ path: 'share', title: 'Share', event: true });
       const btn = document.getElementById('btn-share');
       navigator.clipboard.writeText(text).then(function(){
         const orig = btn.textContent;
