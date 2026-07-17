@@ -315,6 +315,26 @@
     .cal-day.skip  { background: var(--border); opacity: 0.35; }
     .stats-divider { height: 1px; background: var(--border); opacity: 0.4; margin: 12px 0; }
 
+    /* Badges */
+    .badge-row { display: flex; gap: 4px; align-items: center; justify-content: space-evenly; margin-top: 10px; flex-wrap: nowrap; width: 100%; }
+    .badge-item { font-size: 1.35rem; line-height: 1; display: inline-flex; align-items: baseline; cursor: default; }
+    .badge-item.locked { opacity: 0.3; filter: grayscale(1); }
+    .badge-count { font-size: 0.68rem; font-weight: 700; color: var(--muted); margin-left: 1px; vertical-align: baseline; }
+    .badge-earn-line { font-size: 0.92rem; font-weight: 700; color: var(--gold); margin-top: 8px; }
+    .badge-earn-line .badge-new-icon { display: inline-block; }
+    @keyframes badgeFanfare {
+      0%   { transform: scale(0) rotate(-15deg); opacity: 0; }
+      55%  { transform: scale(1.4) rotate(5deg); opacity: 1; }
+      75%  { transform: scale(0.9) rotate(-2deg); }
+      100% { transform: scale(1) rotate(0); }
+    }
+    @keyframes badgeSparkle {
+      0%,100% { filter: brightness(1); }
+      40%     { filter: brightness(2.2) drop-shadow(0 0 8px #c8960c); }
+    }
+    .badge-new-icon { animation: badgeFanfare 0.65s cubic-bezier(.2,.8,.2,1.2) both; }
+    .badge-replaced { animation: badgeSparkle 0.9s ease; }
+
     #hidden-input {
       position: fixed; top: -200px; left: -200px;
       opacity: 0; width: 1px; height: 1px;
@@ -526,6 +546,107 @@
       catch(e) { return { easy: [], hard: [] }; }
     }
 
+    const BADGES = [
+      { threshold: 3,  emoji: '🌿', name: 'Herb Apprentice' },
+      { threshold: 7,  emoji: '🧄', name: 'Garlic Crusher' },
+      { threshold: 14, emoji: '🌶️', name: 'Spice Trader' },
+      { threshold: 30, emoji: '👨‍🍳', name: 'Master Chef' },
+      { threshold: 60, emoji: '🏆', name: 'Flavor Legend' },
+    ];
+
+    function loadBadgeStore() {
+      try { return JSON.parse(localStorage.getItem('spicemix-badges') || '{}'); }
+      catch(e) { return {}; }
+    }
+    function getBadgeState(diff) {
+      const all = loadBadgeStore();
+      return all[diff] || { allEarned: [], breakCounts: {}, lastStreakValue: 0, lastTopMilestone: 0 };
+    }
+    function saveBadgeState(diff, bs) {
+      const all = loadBadgeStore();
+      all[diff] = bs;
+      localStorage.setItem('spicemix-badges', JSON.stringify(all));
+    }
+    function milestoneForStreak(streak) {
+      let top = 0;
+      for (let i = 0; i < BADGES.length; i++) {
+        if (streak >= BADGES[i].threshold) top = BADGES[i].threshold;
+      }
+      return top;
+    }
+
+    // Call after a win with the freshly-computed per-diff streak.
+    // Returns { newlyEarned: badge|null, replacedThreshold: number }
+    function updateBadgesForWin(diff, currentStreak) {
+      const bs = getBadgeState(diff);
+      bs.allEarned    = bs.allEarned    || [];
+      bs.breakCounts  = bs.breakCounts  || {};
+      const lastStreak = bs.lastStreakValue   || 0;
+      const lastTop    = bs.lastTopMilestone  || 0;
+      const prevEarned = bs.allEarned.slice();
+
+      // Streak broke when today's count reset to 1 after a higher previous value
+      const streakBroke = currentStreak === 1 && lastStreak > 0;
+      if (streakBroke && lastTop > 0) {
+        bs.breakCounts[lastTop] = (bs.breakCounts[lastTop] || 0) + 1;
+      }
+
+      const newTop = milestoneForStreak(currentStreak);
+
+      // Crossed a new milestone in the same continuous run → reset lower breakCounts
+      if (!streakBroke && newTop > lastTop && newTop > 0) {
+        for (let i = 0; i < BADGES.length; i++) {
+          if (BADGES[i].threshold < newTop) bs.breakCounts[BADGES[i].threshold] = 0;
+        }
+      }
+
+      // Add all newly-reached milestones to allEarned
+      for (let i = 0; i < BADGES.length; i++) {
+        if (currentStreak >= BADGES[i].threshold && !bs.allEarned.includes(BADGES[i].threshold)) {
+          bs.allEarned.push(BADGES[i].threshold);
+        }
+      }
+
+      // Detect new badge earned this win
+      let newlyEarned = null;
+      let replacedThreshold = 0;
+      if (newTop > 0 && !prevEarned.includes(newTop)) {
+        newlyEarned = BADGES.find(function(b){ return b.threshold === newTop; });
+        if (lastTop > 0 && prevEarned.includes(lastTop)) replacedThreshold = lastTop;
+      }
+
+      bs.lastStreakValue  = currentStreak;
+      bs.lastTopMilestone = newTop;
+      saveBadgeState(diff, bs);
+      return { newlyEarned: newlyEarned, replacedThreshold: replacedThreshold };
+    }
+
+    // Returns HTML string for the badge row.
+    // newBadgeThreshold / replacedThreshold add animation classes when set.
+    function buildBadgeRowHTML(diff, newBadgeThreshold, replacedThreshold) {
+      const bs = getBadgeState(diff);
+      const entries = loadStats()[diff] || [];
+      const currentStreak = computeStreaks(entries).current;
+      let html = '<div class="badge-row">';
+      for (let i = 0; i < BADGES.length; i++) {
+        const b = BADGES[i];
+        const earned = bs.allEarned && bs.allEarned.includes(b.threshold);
+        const active = currentStreak >= b.threshold;
+        if (!earned && !active) {
+          html += '<span class="badge-item locked" title="' + b.name + '">' + b.emoji + '<span class="badge-count">🔒</span></span>';
+        } else {
+          const bc = (bs.breakCounts && bs.breakCounts[b.threshold]) ? bs.breakCounts[b.threshold] : 0;
+          const count = active ? bc + 1 : bc;
+          const multi = count >= 2 ? '<span class="badge-count">×' + count + '</span>' : '';
+          let cls = 'badge-item earned';
+          if (b.threshold === replacedThreshold) cls += ' badge-replaced';
+          html += '<span class="' + cls + '" title="' + b.name + '">' + b.emoji + multi + '</span>';
+        }
+      }
+      html += '</div>';
+      return html;
+    }
+
     function recordResult(won, early) {
       const stats = loadStats(), today = todayStr();
       if (!stats[activeDiff]) stats[activeDiff] = [];
@@ -613,6 +734,7 @@
             '<div class="stats-num"><div class="n">' + pct + '%</div><div class="l">Win rate</div></div>' +
             '<div class="stats-num"><div class="n">' + total + '</div><div class="l">Played</div></div>' +
           '</div>' +
+          buildBadgeRowHTML(diff, 0, 0) +
           '<div class="cal">' + cal + '</div>' +
           '</div>';
       });
@@ -621,6 +743,7 @@
     }
 
     let _cdTimer = null;
+    let _lastBadgeUpdate = null;
     function startCountdown() {
       const el = document.getElementById('countdown');
       function tick() {
@@ -688,8 +811,15 @@
         _activeToast = null;
         const s = loadStreak().streak;
         const streakLine = s === 1 ? '🔥 1 day streak — come back tomorrow!' : '🔥 ' + s + ' day streak!';
+        const _bu = _lastBadgeUpdate || {};
+        const _nb = _bu.newlyEarned;
+        const _rt = _bu.replacedThreshold || 0;
+        const earnLine = _nb
+          ? '<div class="badge-earn-line"><span class="badge-new-icon">' + _nb.emoji + '</span> ' + _nb.name + ' unlocked!</div>'
+          : '';
         msgEl.className = 'message win';
-        msgEl.innerHTML = '🌶️ Pure Perfection! You unlocked today\'s flavor profile.<br><br>' + streakLine;
+        msgEl.innerHTML = '🌶️ Pure Perfection! You unlocked today\'s flavor profile.<br><br>' + streakLine +
+          earnLine + buildBadgeRowHTML(activeDiff, _nb ? _nb.threshold : 0, _rt);
       } else if (state.lost) {
         _activeToast = null;
         msgEl.className = 'message lose';
@@ -801,6 +931,8 @@
         recordStreak();
         updateDailyLabel();
         recordResult(true, r < n - 1);
+        const _newStreak = computeStreaks(loadStats()[activeDiff]).current;
+        _lastBadgeUpdate = updateBadgesForWin(activeDiff, _newStreak);
         saveState();
       } else if (r === n - 1) {
         state.lost = true;
