@@ -465,12 +465,27 @@
     }
     function todayKey() { return 'spicemix-' + activeDiff + '-' + todayStr(); }
 
+    const _shuffleCache = {};
+    function getShuffledIndices(diff) {
+      if (_shuffleCache[diff]) return _shuffleCache[diff];
+      const len = PUZZLES[diff].length;
+      const idx = Array.from({length: len}, (_, i) => i);
+      let s = 20240101;
+      for (let i = len - 1; i > 0; i--) {
+        s = ((Math.imul(s, 1664525) + 1013904223) >>> 0);
+        const j = s % (i + 1);
+        const tmp = idx[i]; idx[i] = idx[j]; idx[j] = tmp;
+      }
+      _shuffleCache[diff] = idx;
+      return idx;
+    }
+
     function getDailyIndex() {
       const now = new Date();
       const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
       const days = Math.floor((today - new Date(2024, 0, 1)) / 86400000);
-      const len  = currentPuzzles().length;
-      return ((days % len) + len) % len;
+      const shuffled = getShuffledIndices(activeDiff);
+      return shuffled[((days % shuffled.length) + shuffled.length) % shuffled.length];
     }
 
     function diffs(a, b) {
