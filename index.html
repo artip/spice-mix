@@ -296,6 +296,24 @@
       margin-top: 14px; font-size: 0.78rem; color: var(--muted);
       text-align: center; font-style: italic;
     }
+    .try-me-wrap { text-align: center; margin-bottom: 14px; }
+    .try-me-btn {
+      padding: 7px 22px; border-radius: 8px;
+      background: var(--accent); color: #fff;
+      border: none; font-size: 0.83rem; font-weight: 700;
+      letter-spacing: 0.04em; cursor: pointer; transition: opacity 0.15s;
+    }
+    .try-me-btn:hover { opacity: 0.85; }
+    .try-me-btn:disabled { opacity: 0.35; cursor: default; }
+    .try-me-msg { font-size: 0.82rem; font-weight: 700; color: var(--gold); margin-top: 4px; }
+    @keyframes exPop {
+      0%   { transform: scale(0.4); opacity: 0; }
+      65%  { transform: scale(1.2); }
+      100% { transform: scale(1); opacity: 1; }
+    }
+    .ex-cell.ex-pop     { animation: exPop 0.22s ease forwards; }
+    .ex-cell.ex-changed { color: #1e8040; border-color: #2a7a3e; background: rgba(42,122,62,0.2); }
+    .ex-row.ex-done     { border-color: #2a7a3e !important; background: rgba(42,122,62,0.08) !important; }
 
     /* Stats modal */
     .stats-section { margin-bottom: 14px; }
@@ -357,22 +375,26 @@
       <button class="modal-close" id="modal-close">&#x2715;</button>
       <div class="modal-heading">How to Play</div>
       <p class="modal-desc">
-        Turn <strong>BEEF</strong> into <strong>BEET</strong> &mdash; change <strong>one letter</strong> per step.
+        Turn <strong>BEET</strong> into <strong>MELT</strong> &mdash; change <strong>one letter</strong> per step.
         Press <strong>Enter</strong> to lock in each word.
       </p>
-      <div class="ex-grid">
+      <div class="try-me-wrap">
+        <button id="try-me-btn" class="try-me-btn">Try Me</button>
+      </div>
+      <div class="ex-grid" id="try-grid">
         <div class="ex-row ex-start">
-          <span class="ex-cell">B</span><span class="ex-cell">E</span><span class="ex-cell">E</span><span class="ex-cell">F</span>
+          <span class="ex-cell">B</span><span class="ex-cell">E</span><span class="ex-cell">E</span><span class="ex-cell">T</span>
           <span class="ex-label">Start</span>
         </div>
-        <div class="ex-row ex-mid">
-          <span class="ex-cell">B</span><span class="ex-cell">E</span><span class="ex-cell">E</span><span class="ex-cell ex-hi">S</span>
-          <span class="ex-label ex-label-dim">F &rarr; S</span>
+        <div class="ex-row" id="try-row-2">
+          <span class="ex-cell"></span><span class="ex-cell"></span><span class="ex-cell"></span><span class="ex-cell"></span>
+          <span class="ex-label ex-label-dim" id="try-label-2"></span>
         </div>
-        <div class="ex-row ex-mid">
-          <span class="ex-cell">B</span><span class="ex-cell">E</span><span class="ex-cell">E</span><span class="ex-cell ex-hi">T</span>
-          <span class="ex-label" style="color:var(--gold)">Target!</span>
+        <div class="ex-row" id="try-row-3">
+          <span class="ex-cell"></span><span class="ex-cell"></span><span class="ex-cell"></span><span class="ex-cell"></span>
+          <span class="ex-label" id="try-label-3"></span>
         </div>
+        <div class="try-me-msg" id="try-me-msg"></div>
       </div>
       <div class="legend">
         <div class="legend-item"><span class="dot green"></span> Green border &mdash; valid move locked in</div>
@@ -1172,11 +1194,58 @@
       b.addEventListener('click', function(){ switchDiff(b.dataset.diff); });
     });
 
-    function openHelp()   { document.getElementById('modal').classList.remove('hidden'); }
+    function tryMeDelay(ms) { return new Promise(function(r){ setTimeout(r, ms); }); }
+
+    function resetTryMe() {
+      var btn = document.getElementById('try-me-btn');
+      var msg = document.getElementById('try-me-msg');
+      if (!btn) return;
+      btn.disabled = false;
+      msg.textContent = '';
+      ['try-row-2','try-row-3'].forEach(function(id) {
+        var row = document.getElementById(id);
+        row.classList.remove('ex-done');
+        row.querySelectorAll('.ex-cell').forEach(function(c) { c.textContent = ''; c.className = 'ex-cell'; });
+      });
+      document.getElementById('try-label-2').textContent = '';
+      var l3 = document.getElementById('try-label-3');
+      l3.textContent = ''; l3.style.color = '';
+    }
+
+    async function runTryMe() {
+      var btn = document.getElementById('try-me-btn');
+      btn.disabled = true;
+      var steps = [
+        { id: 'try-row-2', labelId: 'try-label-2', letters: ['M','E','E','T'], changedIdx: 0, label: 'B → M' },
+        { id: 'try-row-3', labelId: 'try-label-3', letters: ['M','E','L','T'], changedIdx: 2, label: 'Target!' },
+      ];
+      for (var s = 0; s < steps.length; s++) {
+        var step = steps[s];
+        var row = document.getElementById(step.id);
+        var cells = row.querySelectorAll('.ex-cell');
+        for (var i = 0; i < step.letters.length; i++) {
+          await tryMeDelay(130);
+          cells[i].textContent = step.letters[i];
+          cells[i].classList.add('ex-pop');
+          if (i === step.changedIdx) cells[i].classList.add('ex-changed');
+        }
+        await tryMeDelay(280);
+        row.classList.add('ex-done');
+        var labelEl = document.getElementById(step.labelId);
+        labelEl.textContent = step.label;
+        if (s === 1) labelEl.style.color = 'var(--gold)';
+        await tryMeDelay(180);
+      }
+      await tryMeDelay(120);
+      document.getElementById('try-me-msg').textContent = 'You got it! 🌶️';
+    }
+
+    function openHelp()   { resetTryMe(); document.getElementById('modal').classList.remove('hidden'); }
     function closeHelp()  { document.getElementById('modal').classList.add('hidden'); }
     function openStats()  { renderStats(); document.getElementById('stats-modal').classList.remove('hidden'); }
     function closeStats() { document.getElementById('stats-modal').classList.add('hidden'); }
 
+    document.getElementById('try-me-btn').onclick  = runTryMe;
     document.getElementById('btn-share').onclick   = shareResult;
     document.getElementById('btn-hint').onclick    = useHint;
     document.getElementById('btn-help').onclick    = openHelp;
