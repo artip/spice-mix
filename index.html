@@ -1083,16 +1083,22 @@
         for (let c = 0; c < wordLen(); c++) {
           if (state.grid[r][c] !== next[c] && !isHintedCell(r, c)) { hintCol = c; break; }
         }
-        if (hintCol !== -1) {
-          showToast('Tip points to original path — revert earlier rows to use it fully', 'toast-warn', 3500, 'warn');
-        }
       }
 
       if (hintCol === -1) return;
 
+      const wasOffPath = currWord !== p.path[r - 1];
       state.grid[r][hintCol] = next[hintCol];
       state.hintedCells.push({ row: r, col: hintCol });
       state.hintsLeft--;
+
+      if (wasOffPath) {
+        if (state.hintsLeft === 0) {
+          showToast('No tips left — revert earlier rows and try again', 'toast-warn', 3500, 'warn');
+        } else {
+          showToast('Tip points to original path — revert earlier rows to use remaining tips', 'toast-warn', 3500, 'warn');
+        }
+      }
       if (state.selected && state.selected.row === r && state.selected.col === hintCol) {
         const wl = wordLen();
         let nextCol = hintCol + 1;
