@@ -1039,8 +1039,8 @@
       if (state.won || state.lost) return;
       const wl = wordLen();
       const r  = state.activeRow;
-      const hasContent = state.grid[r].some(function(c){ return c !== '_'; });
-      if (hasContent) {
+      const hasUserContent = state.grid[r].some(function(c, i){ return c !== '_' && !isHintedCell(r, i); });
+      if (hasUserContent) {
         state.grid[r] = Array(wl).fill('_');
         state.hintedCells = state.hintedCells.filter(function(h){ return h.row !== r; });
         state.selected = { row: r, col: 0 };
@@ -1051,8 +1051,9 @@
       }
       if (r <= 1) return;
       state.lockedRows.delete(r - 1);
+      state.grid[r] = Array(wl).fill('_');
       state.grid[r - 1] = Array(wl).fill('_');
-      state.hintedCells = state.hintedCells.filter(function(h){ return h.row !== r - 1; });
+      state.hintedCells = state.hintedCells.filter(function(h){ return h.row !== r && h.row !== r - 1; });
       state.activeRow--;
       state.selected = { row: state.activeRow, col: 0 };
       saveState();
