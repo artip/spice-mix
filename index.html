@@ -1083,6 +1083,9 @@
         for (let c = 0; c < wordLen(); c++) {
           if (state.grid[r][c] !== next[c] && !isHintedCell(r, c)) { hintCol = c; break; }
         }
+        if (hintCol !== -1) {
+          showToast('Tip points to original path — revert earlier rows to use it fully', 'toast-warn', 3500, 'warn');
+        }
       }
 
       if (hintCol === -1) return;
