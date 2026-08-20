@@ -11,7 +11,7 @@
   <link rel="icon" type="image/svg+xml" href="favicon.svg?v=3">
   <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400&display=swap" rel="stylesheet">
   <script>
-    const CURRENT_VERSION = '1.3';
+    const CURRENT_VERSION = '1.4';
 
     function showUpdateModal() {
       const modalHTML = '<div id="update-modal" style="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.75);z-index:10000;display:flex;align-items:center;justify-content:center;font-family:system-ui,sans-serif;">' +
@@ -1065,41 +1065,75 @@
       return state.hintedCells.some(function(h){ return h.row === r && h.col === c; });
     }
 
+    // Shortest ladder of valid words from `from` to `to`, at most maxSteps moves.
+    // Returns the words including both ends, or null if `to` is out of reach.
+    function findLadder(from, to, maxSteps) {
+      if (from === to) return [from];
+      if (maxSteps < 1) return null;
+      const words  = currentValidWords();
+      const wl     = wordLen();
+      const prevOf = Object.create(null);
+      prevOf[from] = null;
+      let frontier = [from];
+      for (let step = 0; step < maxSteps && frontier.length; step++) {
+        const nextFrontier = [];
+        for (let i = 0; i < frontier.length; i++) {
+          const w = frontier[i];
+          for (let c = 0; c < wl; c++) {
+            for (let a = 65; a < 91; a++) {
+              const ch = String.fromCharCode(a);
+              if (ch === w[c]) continue;
+              const cand = w.slice(0, c) + ch + w.slice(c + 1);
+              if (prevOf[cand] !== undefined || !words.has(cand)) continue;
+              prevOf[cand] = w;
+              if (cand === to) {
+                const out = [];
+                for (let x = cand; x !== null; x = prevOf[x]) out.push(x);
+                return out.reverse();
+              }
+              nextFrontier.push(cand);
+            }
+          }
+        }
+        frontier = nextFrontier;
+      }
+      return null;
+    }
+
     function useHint() {
       if (state.won || state.lost || state.hintsLeft <= 0) return;
       const p        = currentPuzzle();
+      const n        = p.path.length;
       const r        = state.activeRow;
       const currWord = state.grid[r - 1].join('');
-      const next     = p.path[r];
-      let hintCol    = -1;
+      const onPath   = currWord === p.path[r - 1];
 
-      if (currWord === p.path[r - 1]) {
-        // On canonical path — reveal the letter that changes
-        const prev = p.path[r - 1];
-        for (let c = 0; c < wordLen(); c++) {
-          if (next[c] !== prev[c] && !isHintedCell(r, c)) { hintCol = c; break; }
-        }
+      // A tip has to be playable from the word directly above it, so once the
+      // player leaves the canonical path we re-solve from where they actually are.
+      let next;
+      if (onPath) {
+        next = p.path[r];
       } else {
-        // Off canonical path — reveal first letter in current row that differs from canonical next word
-        for (let c = 0; c < wordLen(); c++) {
-          if (state.grid[r][c] !== next[c] && !isHintedCell(r, c)) { hintCol = c; break; }
+        const ladder = findLadder(currWord, p.target, n - r);
+        if (!ladder) {
+          showToast('No route to ' + p.target + ' from ' + currWord + ' — undo and try another route', 'toast-warn', 3500, 'warn');
+          return;
         }
+        next = ladder[1];
+      }
+
+      // `next` is one letter away from the row above, so this finds that letter.
+      let hintCol = -1;
+      for (let c = 0; c < wordLen(); c++) {
+        if (next[c] !== currWord[c] && !isHintedCell(r, c)) { hintCol = c; break; }
       }
 
       if (hintCol === -1) return;
 
-      const wasOffPath = currWord !== p.path[r - 1];
       state.grid[r][hintCol] = next[hintCol];
       state.hintedCells.push({ row: r, col: hintCol });
       state.hintsLeft--;
 
-      if (wasOffPath) {
-        if (state.hintsLeft === 0) {
-          showToast('No tips left — revert earlier rows and try again', 'toast-warn', 3500, 'warn');
-        } else {
-          showToast('Tip points to original path — revert earlier rows to use remaining tips', 'toast-warn', 3500, 'warn');
-        }
-      }
       if (state.selected && state.selected.row === r && state.selected.col === hintCol) {
         const wl = wordLen();
         let nextCol = hintCol + 1;
